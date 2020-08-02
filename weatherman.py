@@ -1,17 +1,25 @@
-# 'Weatherman' is a practice program by Michal Wiraszka, based on a tutorial by
-# Keith Galli. It requests information from Open Weather Map's API, and
-# displays the city's current weather information using Python's Tkinter GUI.
+# WEATHERMAN
+# by Michal Wiraszka
 
-# Versions:
+# Written fully in Python, making heavy use of its Tkinter module.
+# 'Weatherman' requests information from Open Weather Map's API, and displays
+# the city's current weather information using Python's Tkinter GUI.
+# Based on a tutorial by Keith Galli. 
+
+# --- Versions ---
+
 # Current v1.0 has very limited functionality.
+# 02.08.20 project resumed since last session; window formatting
+
 
 import tkinter as tk
+from tkinter import ttk
 import requests
 from PIL import Image, ImageTk
 import json
 
-WINW = 1000
-WINH = 700
+WINW = 500
+WINH = 400
 WHITE = '#FFFFFF'
 BLACK = '#000000'
 BLUE = '#80C1FF'
@@ -109,13 +117,13 @@ def output_weather(weather_data):
 		str(country) + ' is ' + str(desc) + '.'
 
 def enter_key(event):
-	b_click(entry_box.get())
+	button_click(entry_box.get())
 
 
 app = tk.Tk()
 app.title('Weatherman v1.0')
-app.minsize(900, 630)
-app.maxsize(1000, 700)
+app.minsize(450, 360)
+app.maxsize(600, 480)
 
 win = tk.Canvas(app, width=WINW, height=WINH)
 win.pack()
@@ -127,7 +135,7 @@ entry_box = tk.Entry(top_frame)
 entry_box.config(font=F_TEXT)
 entry_box.place(relwidth=0.65, relheight=1)
 
-button = tk.Button(top_frame, text="How's the Weather?",
+button = tk.Button(top_frame, text="Let's Go!",
 	command=lambda: button_click(entry_box.get()))
 button.config(font=F_BUTTON, padx=20, pady=20)
 button.place(relx=0.7, relwidth=0.3, relheight=1)
