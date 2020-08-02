@@ -10,6 +10,7 @@
 
 # Current v1.0 has very limited functionality.
 # 02.08.20 project resumed since last session; window formatting
+# 02.08.20 identify countries of same-name cities if more than one exists
 
 
 import tkinter as tk
@@ -18,7 +19,7 @@ import requests
 from PIL import Image, ImageTk
 import json
 
-WINW = 500
+WINW = 800
 WINH = 400
 WHITE = '#FFFFFF'
 BLACK = '#000000'
@@ -30,6 +31,7 @@ F_BUTTON = ('Helvetica', 20, "bold")
 
 def button_click(entry):
 	valid = check_entry(entry)
+	single_city_found = False
 	if valid:
 		valid_entry = " ".join(word.capitalize() for word in entry.split())
 		all_ids = get_ids(valid_entry)
@@ -38,11 +40,13 @@ def button_click(entry):
 				valid_entry + ' in the database.'
 		else:
 			if len(all_ids) > 1:
-				final_id = choose_country(valid_entry, str(len(all_ids)))
+				final_id = choose_country(valid_entry, all_ids)
 			else:
 				final_id = all_ids[0][0]
-			weather_data = get_weather(final_id)
-			output_weather(weather_data)
+				single_city_found = True
+			if single_city_found:
+				weather_data = get_weather(final_id)
+				output_weather(weather_data)
 
 def check_entry(entry):
 	valid = False
@@ -82,16 +86,19 @@ def get_ids(valid_entry):
 						all_ids.append([city['id'], city['country']])
 	return all_ids
 
-def choose_country(city_name, num):
-	output_text['text'] = 'Weatherman found ' + str(num) +\
-		' cities called ' + str(city_name) + '.\n\nUnfortunately the' +\
-		' functionality of choosing\na city from a list is not built in yet.'
+def choose_country(city_name, ids):
+	output_text['text'] = 'Weatherman found ' + str(len(ids)) +\
+		' cities named ' + str(city_name) + '.\nPlease select one:\n'
+	print (len(ids))
+	print (type(ids))
+	for i in range(len(ids)):
+		print (ids[i][1])
 
 def get_icon(icon_name):
 	# Icon sized proportionally to window dimensions
 	size = int(output_box.winfo_height() * 0.25)
 	img = ImageTk.PhotoImage(Image.open('./icons/' +\
-		icon_name + '.png').resize((size, size)))
+		icon_name + '.png').resize((size,size)))
 	weather_icon.delete("all")
 	weather_icon.create_image(0, 0, anchor='nw', image=img)
 	weather_icon.image = img
@@ -110,11 +117,13 @@ def output_weather(weather_data):
 		country = weather_data['sys']['country']
 		desc = weather_data['weather'][0]['description']
 		icon_name = weather_data['weather'][0]['icon']
+		
+		get_icon(icon_name)
+		output_text['text'] = 'The weather in ' + str(city) + ', ' +\
+							  str(country) + ' is ' + str(desc) + '.'
 	except:
 		print ('Error 4: Problem retrieving data from Open Weather Map.')
-	get_icon(icon_name)
-	output_text['text'] = 'The weather in ' + str(city) + ', ' +\
-		str(country) + ' is ' + str(desc) + '.'
+	
 
 def enter_key(event):
 	button_click(entry_box.get())
@@ -122,8 +131,8 @@ def enter_key(event):
 
 app = tk.Tk()
 app.title('Weatherman v1.0')
-app.minsize(450, 360)
-app.maxsize(600, 480)
+app.minsize(600,300)
+app.maxsize(800,400)
 
 win = tk.Canvas(app, width=WINW, height=WINH)
 win.pack()
