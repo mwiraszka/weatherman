@@ -13,6 +13,7 @@
 # 02.08.20 identify countries of same-name cities if more than one exists
 # 03.08.20 simplifying code in a few places with {} string output notation
 # 15.08.20 background image to test proportional re-size option
+# 15.08.20 button_click function - {} .format for text
 
 
 import tkinter as tk
@@ -38,8 +39,8 @@ def button_click(entry):
 		valid_entry = " ".join(word.capitalize() for word in entry.split())
 		all_ids = get_ids(valid_entry)
 		if len(all_ids) == 0:
-			output_text['text'] = 'Weatherman could not find ' +\
-				valid_entry + ' in the database.'
+			txt = 'Weatherman could not find {} in the database.'.format(valid_entry)
+			output_text['text'] = txt
 		else:
 			if len(all_ids) > 1:
 				final_id = choose_country(valid_entry, all_ids)
