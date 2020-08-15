@@ -14,6 +14,7 @@
 # 03.08.20 simplifying code in a few places with {} string output notation
 # 15.08.20 background image to test proportional re-size option
 # 15.08.20 button_click function - {} .format for text
+# 15.08.20 clickable buttons for all displayed cities in sel_country & win re-sizing
 
 
 import tkinter as tk
@@ -22,8 +23,8 @@ import requests
 from PIL import Image, ImageTk
 import json
 
-WINW = 800
-WINH = 400
+WINW = 750
+WINH = 375
 WHITE = '#FFFFFF'
 BLACK = '#000000'
 BLUE = '#80C1FF'
@@ -43,7 +44,16 @@ def button_click(entry):
 			output_text['text'] = txt
 		else:
 			if len(all_ids) > 1:
-				final_id = choose_country(valid_entry, all_ids)
+				# While there are many cities in the world with the same name
+				# (25 cities called Springfield in the US alone), there are
+				# only ever 3 or fewer countries that share a city by the same
+				# name in the vast majority of city names. The absolute longest
+				# name found is 'Waterloo', which exists in 6 different countries.
+				# We will assume no name is more popular and set the limit at 6.
+				# This will ensure formatting and the amount of buttons that are
+				# created never go out of range.
+				del all_ids[6:]
+				final_id = select_country(valid_entry, all_ids)
 			else:
 				final_id = all_ids[0][0]
 				single_city_found = True
@@ -89,15 +99,75 @@ def get_ids(valid_entry):
 						all_ids.append([city['id'], city['country']])
 	return all_ids
 
-def choose_country(city_name, ids):
-	txt1 = 'Weatherman found {} cities named {}.\nPlease select one:\n\n'.format(
+
+
+
+def change_case(event=None):
+    new_text = str.swapcase(lab["text"])
+    lab.config(text=new_text)
+    country_selected = True
+
+def red_text(event=None):
+    lab.config(fg="red")
+
+def black_text(event=None):
+    lab.config(fg="black")
+
+def select_country(city_name, ids):
+	# Draw a fresh output box and output how many cities have been found.
+	output_box = tk.Frame(app, bg=BLACK, bd=3)
+	output_box.place(relx=0.5, rely=0.25, relwidth=0.75, relheight=0.6, anchor='n')
+
+	output_text = tk.Label(output_box, anchor='nw', justify='left', bd=4)
+	output_text.config(font=F_TEXT)
+	output_text.place(relwidth=1, relheight=1)
+
+	txt = 'Weatherman found {} cities named {}.\nPlease select one:\n\n'.format(
 			str(len(ids)),
 			str(city_name))
-	txt2 = ''
-	for i in range(len(ids)):
-		txt2 = txt2 + (ids[i][1] + '\n')
-	output_text['text'] = txt1 + txt2
+	output_text['text'] = txt
 	
+	# Create a button for every city found under that name, and format all frames'
+	# and buttons' relative widths/heights/placements based on the amount of cities.
+	choice_frame = tk.Frame(app, bg=BLUE, bd=3)
+	choice_frame.place(relx=0.5,\
+					   rely=0.4,\
+					   relwidth=0.6,\
+					   relheight=0.05 + 0.06*len(ids),\
+					   anchor='n')
+	for i in range(len(ids)):
+		button = tk.Button(choice_frame, text= (str(city_name) + ", " + ids[i][1]),
+					command=lambda: button_click(entry_box.get()))
+		button.config(font=F_BUTTON, padx=10, pady=10)
+		button.place(relx=0.1,\
+					 rely=i/len(ids) + 0.01,\
+					 relwidth=0.8,\
+					 relheight=1/len(ids) - 0.02)
+		app.bind('<Return>', enter_key)
+	
+
+	#country_selected = False
+	#while not country_selected:
+		
+	#	output_text.bind("<Button-1>",change_case)
+	#	output_text.bind("<Enter>",red_text)
+	#	output_text.bind("<Leave>",black_text)
+
+
+	
+	
+	
+	
+	
+
+
+	#lab = tk.Label(output_box, text=ids[1][1], anchor='nw', justify='left', bd=4)
+	#output_text.config(font=F_TEXT)
+	#output_text.place(relwidth=1, relheight=1)
+	#output_text['text'] = 'Please enter a city above.'
+
+
+
 
 def get_icon(icon_name):
 	# Icon sized proportionally to window dimensions
@@ -137,7 +207,7 @@ def enter_key(event):
 
 app = tk.Tk()
 app.title('Weatherman v1.0')
-app.minsize(600,300)
+app.minsize(700,350)
 app.maxsize(800,400)
 
 win = tk.Canvas(app, width=WINW, height=WINH)
