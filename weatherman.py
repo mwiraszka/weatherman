@@ -8,9 +8,11 @@
 
 # --- Versions ---
 
-# Current v1.0 has very limited functionality.
+# Current v1.0 - MVP
 # 02.08.20 project resumed since last session; window formatting
 # 02.08.20 identify countries of same-name cities if more than one exists
+# 03.08.20 simplifying code in a few places with {} string output notation
+# 15.08.20 background image to test re-size options
 
 
 import tkinter as tk
@@ -87,12 +89,14 @@ def get_ids(valid_entry):
 	return all_ids
 
 def choose_country(city_name, ids):
-	output_text['text'] = 'Weatherman found ' + str(len(ids)) +\
-		' cities named ' + str(city_name) + '.\nPlease select one:\n'
-	print (len(ids))
-	print (type(ids))
+	txt1 = 'Weatherman found {} cities named {}.\nPlease select one:\n\n'.format(
+			str(len(ids)),
+			str(city_name))
+	txt2 = ''
 	for i in range(len(ids)):
-		print (ids[i][1])
+		txt2 = txt2 + (ids[i][1] + '\n')
+	output_text['text'] = txt1 + txt2
+	
 
 def get_icon(icon_name):
 	# Icon sized proportionally to window dimensions
@@ -117,10 +121,11 @@ def output_weather(weather_data):
 		country = weather_data['sys']['country']
 		desc = weather_data['weather'][0]['description']
 		icon_name = weather_data['weather'][0]['icon']
-		
 		get_icon(icon_name)
-		output_text['text'] = 'The weather in ' + str(city) + ', ' +\
-							  str(country) + ' is ' + str(desc) + '.'
+		txt = 'The weather in {}, {} is {}.'.format(str(city),
+													str(country),
+													str(desc))
+		output_text['text'] = txt
 	except:
 		print ('Error 4: Problem retrieving data from Open Weather Map.')
 	
@@ -135,6 +140,9 @@ app.minsize(600,300)
 app.maxsize(800,400)
 
 win = tk.Canvas(app, width=WINW, height=WINH)
+bg_img= tk.PhotoImage(file='bg.png')
+bg_label = tk.Label(app, image=bg_img)
+bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 win.pack()
 
 top_frame = tk.Frame(app, bg=BLACK, bd=3)
