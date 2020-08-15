@@ -12,7 +12,7 @@
 # 02.08.20 project resumed since last session; window formatting
 # 02.08.20 identify countries of same-name cities if more than one exists
 # 03.08.20 simplifying code in a few places with {} string output notation
-# 15.08.20 background image to test re-size options
+# 15.08.20 background image to test proportional re-size option
 
 
 import tkinter as tk
