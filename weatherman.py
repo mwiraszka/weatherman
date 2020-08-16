@@ -1,7 +1,6 @@
 # WEATHERMAN
 # by Michal Wiraszka
 
-# Written fully in Python, making heavy use of its Tkinter module.
 # 'Weatherman' requests information from Open Weather Map's API, and displays
 # the city's current weather information using Python's Tkinter GUI.
 # Based on a tutorial by Keith Galli. 
@@ -19,6 +18,7 @@
 # 15.08.20 select_country fully functional now
 # 15.08.20 display more weather information; import datetime and math for time calculations
 # 16.08.20 display img icons, country codes conversion & final touches!
+# 16.08.20 minor glitch with sunrise and sunset time not accounting for timezone - fixed
 
 import datetime
 import math
@@ -49,6 +49,8 @@ def button_click(entry, country_selection=None):
 			output_text(f'Weatherman could not find {valid_entry} in the database.')
 		else:
 			if len(all_ids) > 1:
+				# Cap the amount of countries to display at 6
+				del(all_ids[6:])
 				if country_selection != None:
 					final_id = all_ids[country_selection][0]
 					single_city_found = True
@@ -117,8 +119,8 @@ def select_country(city_name, ids):
 	for i in range(len(ids)):
 		ctry_name = str(ids[i][1])
 		for j in range(len(codes)):
-			# Replace two-letter country codes where possible
-			if str(ids[i][1]) == codes[j]['Code']:
+			# Replace two-letter country codes when name is not too long
+			if str(ids[i][1]) == codes[j]['Code'] and len(codes[j]['Name']) < 20:
 				ctry_name = codes[j]['Name']
 				
 		button = tk.Button(choice_frame, text= (str(city_name) + ", " + ctry_name),
@@ -152,13 +154,21 @@ def output_weather(weather_data):
 		humidity = weather_data['main']['humidity']
 		pressure = weather_data['main']['pressure']
 		icon_name = weather_data['weather'][0]['icon']
+
+		
+		# For some reason, all timezone information is off by 14,400 seconds
+		srise = weather_data['sys']['sunrise']
+		sset = weather_data['sys']['sunset']
+		timezone = weather_data['timezone']
+		dt_sunrise = datetime.datetime.fromtimestamp(srise + timezone + 14400)
+		dt_sunset = datetime.datetime.fromtimestamp(sset + timezone + 14400)
+
+		# How long ago the weather calcs were made, rounded up to the nearest min.
 		dt_calc = datetime.datetime.fromtimestamp(weather_data['dt'])
-		dt_sunrise = datetime.datetime.fromtimestamp(weather_data['sys']['sunrise'])
-		dt_sunset = datetime.datetime.fromtimestamp(weather_data['sys']['sunset'])
 		dt_diff = math.ceil(((datetime.datetime.now() - dt_calc).seconds) / 60)
+		
 		deg = u'\N{DEGREE SIGN}'
 		bul = u'\u2022'
-		
 		# Alter first line based on how many minutes have passed (dt_diff)
 		if dt_diff > 1 and dt_diff < 60:
 			l1 = f' As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}' +\
@@ -179,8 +189,9 @@ def output_weather(weather_data):
 		l8 = f' {bul} Pressure: {(pressure/10)}kPa'
 		l9 = f' {bul} Sunrise at: {dt_sunrise.hour:02}:{dt_sunrise.minute:02}'
 		l10 = f' {bul} Sunset at: {dt_sunset.hour:02}:{dt_sunset.minute:02}'
+		ltemp = f' {bul} Timezone: {timezone}.'
 		message = l1+'\n\n'+l2+'\n\n'+l3+'\n\n'+\
-				  l4+'\n'+l5+'\n'+l6+'\n'+l7+'\n'+l8+'\n'+l9+'\n'+l10
+				  l4+'\n'+l5+'\n'+l6+'\n'+l7+'\n'+l8+'\n'+l9+'\n'+l10+'\n'+ltemp
 	except:
 		print ('Error 4: Problem retrieving data from Open Weather Map.')
 		message = 'Weatherman could not retrieve data and doesn\'t know why.'
@@ -189,7 +200,7 @@ def output_weather(weather_data):
 	
 	
 def enter_key(event):
-	# Pressing the Enter key is equivalent to clicking the button.
+	# Pressing the Enter key is equivalent to clicking the button
 	button_click(entry_box.get())
 
 
