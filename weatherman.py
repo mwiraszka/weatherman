@@ -17,8 +17,9 @@
 # 15.08.20 __main__ tested (removed); window quit prompt
 # 15.08.20 select_country fully functional now
 # 15.08.20 display more weather information; import datetime and math for time calculations
-# 16.08.20 display img icons, country codes conversion & final touches!
-# 16.08.20 minor glitch with sunrise and sunset time not accounting for timezone - fixed
+# 16.08.20 display img icons, country codes conversion
+# 16.08.20 minor glitch with sunrise and sunset time, & some select_country display flaws - fixed
+# 16.08.20 final touches
 
 import datetime
 import math
