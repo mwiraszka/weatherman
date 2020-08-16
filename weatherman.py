@@ -8,7 +8,7 @@
 
 # --- Versions ---
 
-# Current v1.0 - MVP
+# Current v1.0 - MVP only
 # 02.08.20 project resumed since last session; window formatting
 # 02.08.20 identify countries of same-name cities if more than one exists
 # 03.08.20 simplifying code in a few places with {} string output notation
@@ -18,6 +18,7 @@
 # 15.08.20 __main__ tested (removed); window quit prompt
 # 15.08.20 select_country fully functional now
 # 15.08.20 display more weather information; import datetime and math for time calculations
+# 16.08.20 display img icons, country codes conversion & final touches!
 
 import datetime
 import math
@@ -28,7 +29,7 @@ import requests
 from PIL import Image, ImageTk
 import json
 
-WINW = 750
+WINW = 700
 WINH = 365
 WHITE = '#FFFFFF'
 BLACK = '#000000'
@@ -45,8 +46,7 @@ def button_click(entry, country_selection=None):
 		valid_entry = " ".join(word.capitalize() for word in entry.split())
 		all_ids = get_ids(valid_entry)
 		if len(all_ids) == 0:
-			message = 'Weatherman could not find {} in the database.'.format(valid_entry)
-			output_text(message)
+			output_text(f'Weatherman could not find {valid_entry} in the database.')
 		else:
 			if len(all_ids) > 1:
 				if country_selection != None:
@@ -59,28 +59,25 @@ def button_click(entry, country_selection=None):
 				single_city_found = True
 			if single_city_found:
 				weather_data = get_weather(final_id)
-				output_weather(weather_data)
+				icon_name = output_weather(weather_data)
 
 
 def check_entry(entry):
 	valid = False
 	if (len(entry) == 0) or (all(char.isspace() for char in entry)):
 		print ('Error 1: No input.')
-		message = 'Please enter a city.' # Revert to default message.
-		output_text(message)
+		output_text('Please enter a city.')  # Revert to default message.
 	elif len(entry) > 20:
 		print ('Error 2: Too many characters.')
-		message = 'Weatherman does not currently support city names' +\
-					  '\nwith more than 20 letters.'
-		output_text(message)
+		output_text('Weatherman does not support city names with more than 20 letters.')
 	elif all(char.isalpha() or char.isspace() for char in entry) != True:
 		print ('Error 3: Invalid characters.')
-		message = 'Weatherman only understands letters.'
-		output_text(message)
+		output_text('Weatherman only understands letters.')
 	else:
 		valid = True
 	return valid
 		
+
 def get_ids(valid_entry):
 	with open('cities.json') as f:
  		cities = json.load(f)
@@ -103,24 +100,11 @@ def get_ids(valid_entry):
 	return all_ids
 
 
-
-
-def change_case(event=None):
-    new_text = str.swapcase(lab["text"])
-    lab.config(text=new_text)
-    country_selected = True
-
-def red_text(event=None):
-    lab.config(fg="red")
-
-def black_text(event=None):
-    lab.config(fg="black")
-
 def select_country(city_name, ids):
-	message = 'Weatherman found {} cities named {}.\nPlease select one:\n\n'.format(
-			str(len(ids)),
-			str(city_name))
-	output_text(message)
+	output_text(f'Weatherman found {len(ids)} cities named {city_name}.\nSelect one:\n\n')
+	
+	with open('country_codes.json') as f:
+ 		codes = json.load(f)
 	
 	# Create a button for every city found under that name, and format all frames'
 	# and buttons' relative widths/heights/placements based on the amount of cities.
@@ -128,16 +112,23 @@ def select_country(city_name, ids):
 	choice_frame.place(relx=0.5,
 					   rely=0.35,
 					   relwidth=0.5,
-					   relheight=0.05 + 0.08*len(ids),
+					   relheight=0.08*len(ids)+0.05,
 					   anchor='n')
 	for i in range(len(ids)):
-		button = tk.Button(choice_frame, text= (str(city_name) + ", " + ids[i][1]),
+		ctry_name = str(ids[i][1])
+		for j in range(len(codes)):
+			# Replace two-letter country codes where possible
+			if str(ids[i][1]) == codes[j]['Code']:
+				ctry_name = codes[j]['Name']
+				
+		button = tk.Button(choice_frame, text= (str(city_name) + ", " + ctry_name),
 					command=lambda i=i: button_click(entry_box.get(), i))
 		button.config(font=F_BUTTON, padx=10, pady=10)
 		button.place(relx=0.01,
-					 rely=i/len(ids) + 0.01,
+					 rely=i/len(ids)+0.01,
 					 relwidth=0.98,
-					 relheight=1/len(ids) - 0.02)
+					 relheight=1/len(ids)-0.02)
+
 
 def get_weather(city_id):
 	url = 'https://api.openweathermap.org/data/2.5/weather'
@@ -147,61 +138,62 @@ def get_weather(city_id):
 	response = requests.get(url, params=params)
 	return response.json()
 
+
 def output_weather(weather_data):
 	try:
-		# Retrieve all data
+		# Retrieve all data from weather_data nested dictionaries
 		city = weather_data['name']
-		country = weather_data['sys']['country']
+		ctry = weather_data['sys']['country']
 		desc = weather_data['weather'][0]['description']
 		temp = weather_data['main']['temp']
 		feels_like = weather_data['main']['feels_like']
 		low_temp = weather_data['main']['temp_min']
 		high_temp = weather_data['main']['temp_max']
-		degree_sign= u'\N{DEGREE SIGN}'
 		humidity = weather_data['main']['humidity']
 		pressure = weather_data['main']['pressure']
 		icon_name = weather_data['weather'][0]['icon']
 		dt_calc = datetime.datetime.fromtimestamp(weather_data['dt'])
 		dt_sunrise = datetime.datetime.fromtimestamp(weather_data['sys']['sunrise'])
 		dt_sunset = datetime.datetime.fromtimestamp(weather_data['sys']['sunset'])
-			
-		# How long ago was data calculated in minutes, rounded up to the nearest minute
 		dt_diff = math.ceil(((datetime.datetime.now() - dt_calc).seconds) / 60)
+		deg = u'\N{DEGREE SIGN}'
+		bul = u'\u2022'
 		
-		# Based on how many minutes have passed since weather was calculated, display
-		# a relevant message
+		# Alter first line based on how many minutes have passed (dt_diff)
 		if dt_diff > 1 and dt_diff < 60:
-			l1 = f'As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}' +\
-			     f' ({dt_diff:02} minutes ago)...'
+			l1 = f' As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}' +\
+			     f' ({dt_diff} minutes ago)...'
 		elif dt_diff == 1:
-			l1 = f'As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}' +\
-			     f' (< {dt_diff:02} minute ago)...'
+			l1 = f' As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}' +\
+			     f' (< {dt_diff} minute ago)...'
 		else:
-			l1 = f'As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}...'
+			l1 = f' As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}...'
 		
-		l2 = f'The weather in {city}, {country} is {temp:.1f}{degree_sign}C with {desc}.'
-		l3 = 'Additional info:'
-		l4 = f'Feels like: {feels_like:.1f}{degree_sign}C'
-		l5 = f'Today\'s low: {high_temp:.1f}{degree_sign}C'
-		l6 = f'Today\'s high: {low_temp:.1f}{degree_sign}C'
-		l7 = f'Humidity: {humidity}%'
-		l8 = f'Pressure: {(pressure/10)}kPa'
-		l9 = f'Sunrise at: {dt_sunrise.hour:02}:{dt_sunrise.minute:02}'
-		l10 = f'Sunset at: {dt_sunset.hour:02}:{dt_sunset.minute:02}'
+		# Amalgamate remainder of lines into a single message
+		l2 = f' The weather in {city}, {ctry} is {temp:.1f}{deg}C and {desc}.'
+		l3 = ' Additional info:'
+		l4 = f' {bul} Feels like: {feels_like:.1f}{deg}C'
+		l5 = f' {bul} Today\'s low: {high_temp:.1f}{deg}C'
+		l6 = f' {bul} Today\'s high: {low_temp:.1f}{deg}C'
+		l7 = f' {bul} Humidity: {humidity}%'
+		l8 = f' {bul} Pressure: {(pressure/10)}kPa'
+		l9 = f' {bul} Sunrise at: {dt_sunrise.hour:02}:{dt_sunrise.minute:02}'
+		l10 = f' {bul} Sunset at: {dt_sunset.hour:02}:{dt_sunset.minute:02}'
 		message = l1+'\n\n'+l2+'\n\n'+l3+'\n\n'+\
 				  l4+'\n'+l5+'\n'+l6+'\n'+l7+'\n'+l8+'\n'+l9+'\n'+l10
 	except:
 		print ('Error 4: Problem retrieving data from Open Weather Map.')
 		message = 'Weatherman could not retrieve data and doesn\'t know why.'
-	output_text(message)
+	output_text(message, icon_name)
 	
 	
 	
-
 def enter_key(event):
+	# Pressing the Enter key is equivalent to clicking the button.
 	button_click(entry_box.get())
-	
-def output_text(message, *args, **kwargs):
+
+
+def output_text(message, img=None):
 	output_box = tk.Frame(app, bg=BLACK, bd=3)
 	output_box.place(relx=0.5, rely=0.22, relwidth=0.75, relheight=0.7, anchor='n')
 	
@@ -210,22 +202,32 @@ def output_text(message, *args, **kwargs):
 	output.place(relwidth=1, relheight=1)
 	output['text'] = message
 
+	if img != None:
+		icon_url = './icons/' + img + '.png'
+		temp = Image.open(icon_url)
+		icon_img = ImageTk.PhotoImage(temp)
+		icon_box = tk.Frame(app, bg=BLACK, bd=3)
+		icon_box.place(relx=0.86, rely=0.24, width=80, height=80, anchor='ne')
+
+		weather_icon = tk.Canvas(icon_box, bd=0, highlightthickness=0)
+		weather_icon.create_image(10, 10, anchor='nw', image=icon_img)
+		weather_icon.image = icon_img
+		weather_icon.place(relx=0.05, rely=0.05, relwidth=0.9, relheight=0.9)
+
+
 def terminate():
     if messagebox.askokcancel(
-    		"Quit", "Are you sure you wish to quit on Weatherman?"):
+    		"Quit", "Are you sure you want to abandon Weatherman?"):
         app.destroy()
 
 
 
-
-# -------- MAIN --------
-
-
-# --- Window & Background
+# -------- MAIN ----------------
+# --- Window & Background ---
 refresh = True
 app = tk.Tk()
 app.title('Weatherman v1.0')
-app.minsize(650,365)
+app.minsize(700,365)
 app.maxsize(800,400)
 win = tk.Canvas(app, width=WINW, height=WINH)
 bg_img = tk.PhotoImage(file='bg.png')
@@ -240,27 +242,18 @@ top_frame.place(relx=0.5, rely=0.1, relwidth=0.75, relheight=0.1, anchor='n')
 # --- Entry Box & Output Box ---
 entry_box = tk.Entry(top_frame)
 entry_box.config(font=F_TEXT)
-entry_box.place(relwidth=0.69, relheight=1)
+entry_box.place(relwidth=0.49, relheight=1)
 output_text('Please enter a city.') # Default message
 
 # --- Button ---
-button = tk.Button(top_frame, text="Let's Go!",
+button = tk.Button(top_frame, text="Go Go Weatherman!",
 		 	command=lambda: button_click(entry_box.get()))
-button.config(font=F_BUTTON, padx=20, pady=20)
-button.place(relx=0.7, relwidth=0.3, relheight=1)
+button.config(font=F_BUTTON)
+button.place(relx=0.5, relwidth=0.5, relheight=1)
 app.bind('<Return>', enter_key)
 
-# --- Weather Icon ---
-#weather_icon = tk.Canvas(app, bd=0, highlightthickness=0)
-#weather_icon.delete("all")
-#img = ImageTk.PhotoImage(Image.open('./icons/' +\
-		#icon_name + '.png').resize((size,size)))
-#weather_icon.create_image(0, 0, anchor='nw', image=img)
-#weather_icon.image = img
-#weather_icon.place(relx=0.75, rely=0, relwidth=1, relheight=0.5)
-
+# --- Red circle in corner of window is clicked
 app.protocol("WM_DELETE_WINDOW", terminate)
-
 
 # --- Main Loop ---
 app.mainloop()
