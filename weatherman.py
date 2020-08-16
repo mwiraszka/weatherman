@@ -17,8 +17,10 @@
 # 15.08.20 clickable buttons for all displayed cities in sel_country & win re-sizing
 # 15.08.20 __main__ tested (removed); window quit prompt
 # 15.08.20 select_country fully functional now
+# 15.08.20 display more weather information; import datetime and math for time calculations
 
-
+import datetime
+import math
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
@@ -27,7 +29,7 @@ from PIL import Image, ImageTk
 import json
 
 WINW = 750
-WINH = 375
+WINH = 365
 WHITE = '#FFFFFF'
 BLACK = '#000000'
 BLUE = '#80C1FF'
@@ -47,16 +49,6 @@ def button_click(entry, country_selection=None):
 			output_text(message)
 		else:
 			if len(all_ids) > 1:
-				# While there are many cities in the world with the same name
-				# (25 cities called Springfield in the US alone), there are
-				# only ever 3 or fewer countries that share a city by the same
-				# name in the vast majority of city names. The absolute longest
-				# name found is 'Waterloo', which exists in 6 different countries.
-				# We will assume no name is more popular and set the limit at 6.
-				# This will ensure formatting and the amount of buttons that are
-				# created never go out of range.
-				del all_ids[6:]
-
 				if country_selection != None:
 					final_id = all_ids[country_selection][0]
 					single_city_found = True
@@ -68,12 +60,6 @@ def button_click(entry, country_selection=None):
 			if single_city_found:
 				weather_data = get_weather(final_id)
 				output_weather(weather_data)
-
-def coordinates(num, entry):
-	city_name = " ".join(word.capitalize() for word in entry.split())
-	print(num)
-	print(entry)
-
 
 
 def check_entry(entry):
@@ -163,13 +149,47 @@ def get_weather(city_id):
 
 def output_weather(weather_data):
 	try:
+		# Retrieve all data
 		city = weather_data['name']
 		country = weather_data['sys']['country']
 		desc = weather_data['weather'][0]['description']
+		temp = weather_data['main']['temp']
+		feels_like = weather_data['main']['feels_like']
+		low_temp = weather_data['main']['temp_min']
+		high_temp = weather_data['main']['temp_max']
+		degree_sign= u'\N{DEGREE SIGN}'
+		humidity = weather_data['main']['humidity']
+		pressure = weather_data['main']['pressure']
 		icon_name = weather_data['weather'][0]['icon']
-		message = 'The weather in {}, {} is {}.'.format(str(city),\
-													    str(country),\
-													    str(desc))
+		dt_calc = datetime.datetime.fromtimestamp(weather_data['dt'])
+		dt_sunrise = datetime.datetime.fromtimestamp(weather_data['sys']['sunrise'])
+		dt_sunset = datetime.datetime.fromtimestamp(weather_data['sys']['sunset'])
+			
+		# How long ago was data calculated in minutes, rounded up to the nearest minute
+		dt_diff = math.ceil(((datetime.datetime.now() - dt_calc).seconds) / 60)
+		
+		# Based on how many minutes have passed since weather was calculated, display
+		# a relevant message
+		if dt_diff > 1 and dt_diff < 60:
+			l1 = f'As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}' +\
+			     f' ({dt_diff:02} minutes ago)...'
+		elif dt_diff == 1:
+			l1 = f'As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}' +\
+			     f' (< {dt_diff:02} minute ago)...'
+		else:
+			l1 = f'As of {dt_calc.date()} at {dt_calc.hour:02}:{dt_calc.minute:02}...'
+		
+		l2 = f'The weather in {city}, {country} is {temp:.1f}{degree_sign}C with {desc}.'
+		l3 = 'Additional info:'
+		l4 = f'Feels like: {feels_like:.1f}{degree_sign}C'
+		l5 = f'Today\'s low: {high_temp:.1f}{degree_sign}C'
+		l6 = f'Today\'s high: {low_temp:.1f}{degree_sign}C'
+		l7 = f'Humidity: {humidity}%'
+		l8 = f'Pressure: {(pressure/10)}kPa'
+		l9 = f'Sunrise at: {dt_sunrise.hour:02}:{dt_sunrise.minute:02}'
+		l10 = f'Sunset at: {dt_sunset.hour:02}:{dt_sunset.minute:02}'
+		message = l1+'\n\n'+l2+'\n\n'+l3+'\n\n'+\
+				  l4+'\n'+l5+'\n'+l6+'\n'+l7+'\n'+l8+'\n'+l9+'\n'+l10
 	except:
 		print ('Error 4: Problem retrieving data from Open Weather Map.')
 		message = 'Weatherman could not retrieve data and doesn\'t know why.'
@@ -205,7 +225,7 @@ def terminate():
 refresh = True
 app = tk.Tk()
 app.title('Weatherman v1.0')
-app.minsize(700,350)
+app.minsize(650,365)
 app.maxsize(800,400)
 win = tk.Canvas(app, width=WINW, height=WINH)
 bg_img = tk.PhotoImage(file='bg.png')
@@ -229,8 +249,6 @@ button = tk.Button(top_frame, text="Let's Go!",
 button.config(font=F_BUTTON, padx=20, pady=20)
 button.place(relx=0.7, relwidth=0.3, relheight=1)
 app.bind('<Return>', enter_key)
-
-
 
 # --- Weather Icon ---
 #weather_icon = tk.Canvas(app, bd=0, highlightthickness=0)
