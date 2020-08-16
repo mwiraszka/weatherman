@@ -16,6 +16,7 @@
 # 15.08.20 button_click function - {} .format for text
 # 15.08.20 clickable buttons for all displayed cities in sel_country & win re-sizing
 # 15.08.20 __main__ tested (removed); window quit prompt
+# 15.08.20 select_country fully functional now
 
 
 import tkinter as tk
@@ -35,7 +36,7 @@ F_TEXT = ('Helvetica', 16)
 F_BUTTON = ('Helvetica', 20, "bold")
 
 
-def button_click(entry):
+def button_click(entry, country_selection=None):
 	valid = check_entry(entry)
 	single_city_found = False
 	if valid:
@@ -55,7 +56,12 @@ def button_click(entry):
 				# This will ensure formatting and the amount of buttons that are
 				# created never go out of range.
 				del all_ids[6:]
-				final_id = select_country(valid_entry, all_ids)
+
+				if country_selection != None:
+					final_id = all_ids[country_selection][0]
+					single_city_found = True
+				else:
+					select_country(valid_entry, all_ids)
 			else:
 				final_id = all_ids[0][0]
 				single_city_found = True
@@ -63,15 +69,18 @@ def button_click(entry):
 				weather_data = get_weather(final_id)
 				output_weather(weather_data)
 
-def coordinates(entry):
+def coordinates(num, entry):
 	city_name = " ".join(word.capitalize() for word in entry.split())
+	print(num)
+	print(entry)
+
 
 
 def check_entry(entry):
 	valid = False
 	if (len(entry) == 0) or (all(char.isspace() for char in entry)):
 		print ('Error 1: No input.')
-		message = 'Please enter a city.' # Return to default message.
+		message = 'Please enter a city.' # Revert to default message.
 		output_text(message)
 	elif len(entry) > 20:
 		print ('Error 2: Too many characters.')
@@ -137,28 +146,12 @@ def select_country(city_name, ids):
 					   anchor='n')
 	for i in range(len(ids)):
 		button = tk.Button(choice_frame, text= (str(city_name) + ", " + ids[i][1]),
-					command=lambda: coordinates(entry_box.get()))
+					command=lambda i=i: button_click(entry_box.get(), i))
 		button.config(font=F_BUTTON, padx=10, pady=10)
 		button.place(relx=0.01,
 					 rely=i/len(ids) + 0.01,
 					 relwidth=0.98,
 					 relheight=1/len(ids) - 0.02)
-		app.bind('<Return>', enter_key)
-	
-
-	#country_selected = False
-	#while not country_selected:
-		
-	#	output_text.bind("<Button-1>",change_case)
-	#	output_text.bind("<Enter>",red_text)
-	#	output_text.bind("<Leave>",black_text)
-
-	#lab = tk.Label(output_box, text=ids[1][1], anchor='nw', justify='left', bd=4)
-	#output_text.config(font=F_TEXT)
-	#output_text.place(relwidth=1, relheight=1)
-	#output_text['text'] = 'Please enter a city above.'
-
-
 
 def get_weather(city_id):
 	url = 'https://api.openweathermap.org/data/2.5/weather'
@@ -168,31 +161,19 @@ def get_weather(city_id):
 	response = requests.get(url, params=params)
 	return response.json()
 
-def get_icon(icon_name):
-	# Icon sized proportionally to window dimensions
-	print('attemption to get new icon...')
-	#size = int(app.winfo_height() * 0.25)
-	size = 50
-	
-	return img
-
 def output_weather(weather_data):
 	try:
 		city = weather_data['name']
 		country = weather_data['sys']['country']
 		desc = weather_data['weather'][0]['description']
 		icon_name = weather_data['weather'][0]['icon']
-		print('before')
-		img = get_icon(icon_name)
-		print('after')
 		message = 'The weather in {}, {} is {}.'.format(str(city),\
 													    str(country),\
 													    str(desc))
-		output_text(message)
 	except:
 		print ('Error 4: Problem retrieving data from Open Weather Map.')
 		message = 'Weatherman could not retrieve data and doesn\'t know why.'
-		output_text(message)
+	output_text(message)
 	
 	
 	
@@ -210,7 +191,8 @@ def output_text(message, *args, **kwargs):
 	output['text'] = message
 
 def terminate():
-    if messagebox.askokcancel("Quit", "Are you sure you wish to quit on Weatherman?"):
+    if messagebox.askokcancel(
+    		"Quit", "Are you sure you wish to quit on Weatherman?"):
         app.destroy()
 
 
