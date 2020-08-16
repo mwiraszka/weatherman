@@ -1,25 +1,12 @@
-try:
-    import tkinter as tk
-except ImportError:
-    import Tkinter as tk
-
-def change_case(event=None):
-    new_text = str.swapcase(lab["text"])
-    lab.config(text=new_text)
-
-def red_text(event=None):
-    lab.config(fg="red")
-
-def black_text(event=None):
-    lab.config(fg="black")
+import tkinter as tk
 
 root = tk.Tk()
 
-lab = tk.Label(root,text="this is a test")
+def callback(event):
+    print ("clicked at", event.x, event.y)
 
-lab.bind("<Button-1>",change_case)
-lab.bind("<Enter>",red_text)
-lab.bind("<Leave>",black_text)
+frame = tk.Frame(root, width=100, height=100)
+frame.bind("<Button-1>", callback)
+frame.pack()
 
-lab.grid()
 root.mainloop()

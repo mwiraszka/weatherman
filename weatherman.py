@@ -15,10 +15,12 @@
 # 15.08.20 background image to test proportional re-size option
 # 15.08.20 button_click function - {} .format for text
 # 15.08.20 clickable buttons for all displayed cities in sel_country & win re-sizing
+# 15.08.20 __main__ tested (removed); window quit prompt
 
 
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 import requests
 from PIL import Image, ImageTk
 import json
@@ -40,8 +42,8 @@ def button_click(entry):
 		valid_entry = " ".join(word.capitalize() for word in entry.split())
 		all_ids = get_ids(valid_entry)
 		if len(all_ids) == 0:
-			txt = 'Weatherman could not find {} in the database.'.format(valid_entry)
-			output_text['text'] = txt
+			message = 'Weatherman could not find {} in the database.'.format(valid_entry)
+			output_text(message)
 		else:
 			if len(all_ids) > 1:
 				# While there are many cities in the world with the same name
@@ -61,19 +63,25 @@ def button_click(entry):
 				weather_data = get_weather(final_id)
 				output_weather(weather_data)
 
+def coordinates(entry):
+	city_name = " ".join(word.capitalize() for word in entry.split())
+
+
 def check_entry(entry):
 	valid = False
 	if (len(entry) == 0) or (all(char.isspace() for char in entry)):
 		print ('Error 1: No input.')
-		# Return to default message in the output box
-		output_text['text'] = 'Please enter a city above.'
+		message = 'Please enter a city.' # Return to default message.
+		output_text(message)
 	elif len(entry) > 20:
 		print ('Error 2: Too many characters.')
-		output_text['text'] = 'Weatherman does not currently support city' +\
-			' names\nwith more than 20 letters.'
+		message = 'Weatherman does not currently support city names' +\
+					  '\nwith more than 20 letters.'
+		output_text(message)
 	elif all(char.isalpha() or char.isspace() for char in entry) != True:
 		print ('Error 3: Invalid characters.')
-		output_text['text'] = 'Weatherman only understands letters.'
+		message = 'Weatherman only understands letters.'
+		output_text(message)
 	else:
 		valid = True
 	return valid
@@ -114,34 +122,26 @@ def black_text(event=None):
     lab.config(fg="black")
 
 def select_country(city_name, ids):
-	# Draw a fresh output box and output how many cities have been found.
-	output_box = tk.Frame(app, bg=BLACK, bd=3)
-	output_box.place(relx=0.5, rely=0.25, relwidth=0.75, relheight=0.6, anchor='n')
-
-	output_text = tk.Label(output_box, anchor='nw', justify='left', bd=4)
-	output_text.config(font=F_TEXT)
-	output_text.place(relwidth=1, relheight=1)
-
-	txt = 'Weatherman found {} cities named {}.\nPlease select one:\n\n'.format(
+	message = 'Weatherman found {} cities named {}.\nPlease select one:\n\n'.format(
 			str(len(ids)),
 			str(city_name))
-	output_text['text'] = txt
+	output_text(message)
 	
 	# Create a button for every city found under that name, and format all frames'
 	# and buttons' relative widths/heights/placements based on the amount of cities.
 	choice_frame = tk.Frame(app, bg=BLUE, bd=3)
-	choice_frame.place(relx=0.5,\
-					   rely=0.4,\
-					   relwidth=0.6,\
-					   relheight=0.05 + 0.06*len(ids),\
+	choice_frame.place(relx=0.5,
+					   rely=0.35,
+					   relwidth=0.5,
+					   relheight=0.05 + 0.08*len(ids),
 					   anchor='n')
 	for i in range(len(ids)):
 		button = tk.Button(choice_frame, text= (str(city_name) + ", " + ids[i][1]),
-					command=lambda: button_click(entry_box.get()))
+					command=lambda: coordinates(entry_box.get()))
 		button.config(font=F_BUTTON, padx=10, pady=10)
-		button.place(relx=0.1,\
-					 rely=i/len(ids) + 0.01,\
-					 relwidth=0.8,\
+		button.place(relx=0.01,
+					 rely=i/len(ids) + 0.01,
+					 relwidth=0.98,
 					 relheight=1/len(ids) - 0.02)
 		app.bind('<Return>', enter_key)
 	
@@ -153,30 +153,12 @@ def select_country(city_name, ids):
 	#	output_text.bind("<Enter>",red_text)
 	#	output_text.bind("<Leave>",black_text)
 
-
-	
-	
-	
-	
-	
-
-
 	#lab = tk.Label(output_box, text=ids[1][1], anchor='nw', justify='left', bd=4)
 	#output_text.config(font=F_TEXT)
 	#output_text.place(relwidth=1, relheight=1)
 	#output_text['text'] = 'Please enter a city above.'
 
 
-
-
-def get_icon(icon_name):
-	# Icon sized proportionally to window dimensions
-	size = int(output_box.winfo_height() * 0.25)
-	img = ImageTk.PhotoImage(Image.open('./icons/' +\
-		icon_name + '.png').resize((size,size)))
-	weather_icon.delete("all")
-	weather_icon.create_image(0, 0, anchor='nw', image=img)
-	weather_icon.image = img
 
 def get_weather(city_id):
 	url = 'https://api.openweathermap.org/data/2.5/weather'
@@ -186,59 +168,100 @@ def get_weather(city_id):
 	response = requests.get(url, params=params)
 	return response.json()
 
+def get_icon(icon_name):
+	# Icon sized proportionally to window dimensions
+	print('attemption to get new icon...')
+	#size = int(app.winfo_height() * 0.25)
+	size = 50
+	
+	return img
+
 def output_weather(weather_data):
 	try:
 		city = weather_data['name']
 		country = weather_data['sys']['country']
 		desc = weather_data['weather'][0]['description']
 		icon_name = weather_data['weather'][0]['icon']
-		get_icon(icon_name)
-		txt = 'The weather in {}, {} is {}.'.format(str(city),
-													str(country),
-													str(desc))
-		output_text['text'] = txt
+		print('before')
+		img = get_icon(icon_name)
+		print('after')
+		message = 'The weather in {}, {} is {}.'.format(str(city),\
+													    str(country),\
+													    str(desc))
+		output_text(message)
 	except:
 		print ('Error 4: Problem retrieving data from Open Weather Map.')
+		message = 'Weatherman could not retrieve data and doesn\'t know why.'
+		output_text(message)
+	
+	
 	
 
 def enter_key(event):
 	button_click(entry_box.get())
+	
+def output_text(message, *args, **kwargs):
+	output_box = tk.Frame(app, bg=BLACK, bd=3)
+	output_box.place(relx=0.5, rely=0.22, relwidth=0.75, relheight=0.7, anchor='n')
+	
+	output = tk.Label(output_box, anchor='nw', justify='left', bd=4)
+	output.config(font=F_TEXT)
+	output.place(relwidth=1, relheight=1)
+	output['text'] = message
+
+def terminate():
+    if messagebox.askokcancel("Quit", "Are you sure you wish to quit on Weatherman?"):
+        app.destroy()
 
 
+
+
+# -------- MAIN --------
+
+
+# --- Window & Background
+refresh = True
 app = tk.Tk()
 app.title('Weatherman v1.0')
 app.minsize(700,350)
 app.maxsize(800,400)
-
 win = tk.Canvas(app, width=WINW, height=WINH)
-bg_img= tk.PhotoImage(file='bg.png')
+bg_img = tk.PhotoImage(file='bg.png')
 bg_label = tk.Label(app, image=bg_img)
 bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 win.pack()
 
+# --- Top Frame ---
 top_frame = tk.Frame(app, bg=BLACK, bd=3)
 top_frame.place(relx=0.5, rely=0.1, relwidth=0.75, relheight=0.1, anchor='n')
 
+# --- Entry Box & Output Box ---
 entry_box = tk.Entry(top_frame)
 entry_box.config(font=F_TEXT)
-entry_box.place(relwidth=0.65, relheight=1)
+entry_box.place(relwidth=0.69, relheight=1)
+output_text('Please enter a city.') # Default message
 
+# --- Button ---
 button = tk.Button(top_frame, text="Let's Go!",
-	command=lambda: button_click(entry_box.get()))
+		 	command=lambda: button_click(entry_box.get()))
 button.config(font=F_BUTTON, padx=20, pady=20)
 button.place(relx=0.7, relwidth=0.3, relheight=1)
 app.bind('<Return>', enter_key)
 
-output_box = tk.Frame(app, bg=BLACK, bd=3)
-output_box.place(relx=0.5, rely=0.25, relwidth=0.75, relheight=0.6, anchor='n')
-
-output_text = tk.Label(output_box, anchor='nw', justify='left', bd=4)
-output_text.config(font=F_TEXT)
-output_text.place(relwidth=1, relheight=1)
-output_text['text'] = 'Please enter a city above.'
-
-weather_icon = tk.Canvas(output_text, bd=0, highlightthickness=0)
-weather_icon.place(relx=.75, rely=0, relwidth=1, relheight=0.5)
 
 
+# --- Weather Icon ---
+#weather_icon = tk.Canvas(app, bd=0, highlightthickness=0)
+#weather_icon.delete("all")
+#img = ImageTk.PhotoImage(Image.open('./icons/' +\
+		#icon_name + '.png').resize((size,size)))
+#weather_icon.create_image(0, 0, anchor='nw', image=img)
+#weather_icon.image = img
+#weather_icon.place(relx=0.75, rely=0, relwidth=1, relheight=0.5)
+
+app.protocol("WM_DELETE_WINDOW", terminate)
+
+
+# --- Main Loop ---
 app.mainloop()
+
