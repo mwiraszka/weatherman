@@ -20,7 +20,9 @@
 # 16.08.20 display img icons, country codes conversion
 # 16.08.20 minor glitch with sunrise and sunset time, & some select_country display flaws - fixed
 # 16.08.20 final touches
+# 17.08.20 graphics touchups; removed tzone output; limit city output to 10 chars; attempt 2 with é //.
 
+# ---IMPORTS---
 import datetime
 import math
 import tkinter as tk
@@ -30,6 +32,7 @@ import requests
 from PIL import Image, ImageTk
 import json
 
+# ---CONSTANTS---
 WINW = 700
 WINH = 365
 WHITE = '#FFFFFF'
@@ -39,30 +42,47 @@ RED = '#DDAAAA'
 F_TEXT = ('Helvetica', 16)
 F_BUTTON = ('Helvetica', 20, "bold")
 
-
+# ---FUNCTIONS---
 def button_click(entry, country_selection=None):
-	valid = check_entry(entry)
 	single_city_found = False
+	valid = check_entry(entry)
 	if valid:
+		# Add capital letters for each separate word in the name before searching
 		valid_entry = " ".join(word.capitalize() for word in entry.split())
-		all_ids = get_ids(valid_entry)
-		if len(all_ids) == 0:
-			output_text(f'Weatherman could not find {valid_entry} in the database.')
-		else:
-			if len(all_ids) > 1:
-				# Cap the amount of countries to display at 6
-				del(all_ids[6:])
-				if country_selection != None:
-					final_id = all_ids[country_selection][0]
-					single_city_found = True
+		
+		# If no IDs found, try again by replacing e with é for all instances in word
+		for attempt in range(1, 3):
+			all_ids = get_ids(valid_entry)
+			if len(all_ids) == 0:
+				if attempt == 1 and ('e' in valid_entry):
+					# See if replacing e with é helps find the city
+					valid_entry = valid_entry.replace('e', 'é')
 				else:
-					select_country(valid_entry, all_ids)
+					# If neither variation of e worked, return back to user's spelling
+					orig_entry = valid_entry.replace('é', 'e')
+					output_text(f'Weatherman could not find {orig_entry} '+\
+								 'in the database.')
+					break
 			else:
-				final_id = all_ids[0][0]
+				break
+		
+		# Exactly 1 ID found
+		if len(all_ids) == 1:
+			final_id = all_ids[0][0]
+			single_city_found = True
+
+		# Multiple ID's found under that name
+		elif len(all_ids) > 1:
+			# Cap the amount of displayed countries belonging to that city name
+			del(all_ids[6:])
+			if country_selection != None:
+				final_id = all_ids[country_selection][0]
 				single_city_found = True
-			if single_city_found:
-				weather_data = get_weather(final_id)
-				icon_name = output_weather(weather_data)
+			else:
+				select_country(valid_entry, all_ids)
+		if single_city_found:
+			weather_data = get_weather(final_id)
+			icon_name = output_weather(weather_data)
 
 
 def check_entry(entry):
@@ -104,8 +124,8 @@ def get_ids(valid_entry):
 
 
 def select_country(city_name, ids):
-	output_text(f'Weatherman found {len(ids)} cities named {city_name}.\nSelect one:\n\n')
-	
+	output_text(f'Weatherman found {len(ids)} cities named {city_name}.\n' +\
+				 'Select one:\n\n')
 	with open('country_codes.json') as f:
  		codes = json.load(f)
 	
@@ -124,7 +144,7 @@ def select_country(city_name, ids):
 			if str(ids[i][1]) == codes[j]['Code'] and len(codes[j]['Name']) < 20:
 				ctry_name = codes[j]['Name']
 				
-		button = tk.Button(choice_frame, text= (str(city_name) + ", " + ctry_name),
+		button = tk.Button(choice_frame, text=(str(city_name) + ", " + ctry_name),
 					command=lambda i=i: button_click(entry_box.get(), i))
 		button.config(font=F_BUTTON, padx=10, pady=10)
 		button.place(relx=0.01,
@@ -156,7 +176,10 @@ def output_weather(weather_data):
 		pressure = weather_data['main']['pressure']
 		icon_name = weather_data['weather'][0]['icon']
 
-		
+		# If city name is too long, shrink and add a period
+		if len(city) > 10:
+			city = city[:10] + '.' 
+
 		# For some reason, all timezone information is off by 14,400 seconds
 		srise = weather_data['sys']['sunrise']
 		sset = weather_data['sys']['sunset']
@@ -164,7 +187,7 @@ def output_weather(weather_data):
 		dt_sunrise = datetime.datetime.fromtimestamp(srise + timezone + 14400)
 		dt_sunset = datetime.datetime.fromtimestamp(sset + timezone + 14400)
 
-		# How long ago the weather calcs were made, rounded up to the nearest min.
+		# How long ago the weather calcs were made, rounded up to the nearest minute
 		dt_calc = datetime.datetime.fromtimestamp(weather_data['dt'])
 		dt_diff = math.ceil(((datetime.datetime.now() - dt_calc).seconds) / 60)
 		
@@ -190,14 +213,12 @@ def output_weather(weather_data):
 		l8 = f' {bul} Pressure: {(pressure/10)}kPa'
 		l9 = f' {bul} Sunrise at: {dt_sunrise.hour:02}:{dt_sunrise.minute:02}'
 		l10 = f' {bul} Sunset at: {dt_sunset.hour:02}:{dt_sunset.minute:02}'
-		ltemp = f' {bul} Timezone: {timezone}.'
 		message = l1+'\n\n'+l2+'\n\n'+l3+'\n\n'+\
-				  l4+'\n'+l5+'\n'+l6+'\n'+l7+'\n'+l8+'\n'+l9+'\n'+l10+'\n'+ltemp
+				  l4+'\n'+l5+'\n'+l6+'\n'+l7+'\n'+l8+'\n'+l9+'\n'+l10
 	except:
 		print ('Error 4: Problem retrieving data from Open Weather Map.')
 		message = 'Weatherman could not retrieve data and doesn\'t know why.'
 	output_text(message, icon_name)
-	
 	
 	
 def enter_key(event):
@@ -215,23 +236,34 @@ def output_text(message, img=None):
 	output['text'] = message
 
 	if img != None:
+		# Output icon image based on weather results
 		icon_url = './icons/' + img + '.png'
-		temp = Image.open(icon_url)
-		icon_img = ImageTk.PhotoImage(temp)
+		temp_icon = Image.open(icon_url)
+		icon_img = ImageTk.PhotoImage(temp_icon)
 		icon_box = tk.Frame(app, bg=BLACK, bd=3)
 		icon_box.place(relx=0.86, rely=0.24, width=80, height=80, anchor='ne')
 
 		weather_icon = tk.Canvas(icon_box, bd=0, highlightthickness=0)
 		weather_icon.create_image(10, 10, anchor='nw', image=icon_img)
 		weather_icon.image = icon_img
-		weather_icon.place(relx=0.05, rely=0.05, relwidth=0.9, relheight=0.9)
+		weather_icon.place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.96)
+
+		# Output the Weatherman
+		temp_brick = Image.open('./brick.png')
+		brick_img = ImageTk.PhotoImage(temp_brick)
+		brick_box = tk.Frame(app, bg=BLACK, bd=3)
+		brick_box.place(relx=0.37, rely=0.44, width=210, height=162)
+
+		brick_icon = tk.Canvas(brick_box, bd=0, highlightthickness=0)
+		brick_icon.create_image(0, 0, anchor='nw', image=brick_img)
+		brick_icon.image = brick_img
+		brick_icon.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
 
 
 def terminate():
     if messagebox.askokcancel(
     		"Quit", "Are you sure you want to abandon Weatherman?"):
         app.destroy()
-
 
 
 # -------- MAIN ----------------
@@ -264,9 +296,8 @@ button.config(font=F_BUTTON)
 button.place(relx=0.5, relwidth=0.5, relheight=1)
 app.bind('<Return>', enter_key)
 
-# --- Red circle in corner of window is clicked
+# --- Red circle in corner of window is clicked ---
 app.protocol("WM_DELETE_WINDOW", terminate)
 
 # --- Main Loop ---
 app.mainloop()
-
