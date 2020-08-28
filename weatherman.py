@@ -20,7 +20,8 @@
 # 16.08.20 display img icons, country codes conversion
 # 16.08.20 minor glitch with sunrise and sunset time, & some select_country display flaws - fixed
 # 16.08.20 final touches
-# 17.08.20 graphics touchups; removed tzone output; limit city output to 10 chars; attempt 2 with é //.
+# 17.08.20 graphics touchups; removed tzone output; limit city output to 10 chars; attempt 2 with é
+# 28.08.20 application screenshots added; v1.0 complete //.
 
 # ---IMPORTS---
 import datetime
@@ -207,8 +208,8 @@ def output_weather(weather_data):
 		l2 = f' The weather in {city}, {ctry} is {temp:.1f}{deg}C and {desc}.'
 		l3 = ' Additional info:'
 		l4 = f' {bul} Feels like: {feels_like:.1f}{deg}C'
-		l5 = f' {bul} Today\'s low: {high_temp:.1f}{deg}C'
-		l6 = f' {bul} Today\'s high: {low_temp:.1f}{deg}C'
+		l5 = f' {bul} Today\'s low: {low_temp:.1f}{deg}C'
+		l6 = f' {bul} Today\'s high: {high_temp:.1f}{deg}C'
 		l7 = f' {bul} Humidity: {humidity}%'
 		l8 = f' {bul} Pressure: {(pressure/10)}kPa'
 		l9 = f' {bul} Sunrise at: {dt_sunrise.hour:02}:{dt_sunrise.minute:02}'
